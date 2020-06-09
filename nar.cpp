@@ -2,6 +2,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <filesystem>
 
 std::string version = "1.0";
 
@@ -9,6 +10,8 @@ int main(int argc, char** argv)
 {
 	if(argc > 1)
 	{
+		/* ARCHIVE :: -a :: nar -a input [input2...] > output.nar */
+		
 		if(!strcmp(argv[1], "-a"))
 		{
 			std::string buffer = "";
@@ -56,6 +59,9 @@ int main(int argc, char** argv)
 				std::cout << (char)(255 - buffer[bpos]);
 			}
 		}
+
+		/* UNARCHIVE :: -u :: nar -u input.nar */
+
 		else if(!strcmp(argv[1], "-u"))
 		{
 			std::ifstream i;
@@ -73,7 +79,7 @@ int main(int argc, char** argv)
 				std::istringstream isdbuf(buffer);
 				std::string data = "";
 				bool inHeader, inFileHeader, inFileContent = false;
-				std::string format = "nar";
+				std::string format = "bad";
 
 				while(getline(isdbuf, data))
 				{
@@ -89,7 +95,13 @@ int main(int argc, char** argv)
 							if(d == "format:")
 							{
 								getline(isdbuf, format);
-								std::cout << ">> Format set to " << format << "!\n";
+								if(format == "nar")
+								std::cout << ":: Detected correct format (" << format << ")!\n";
+								else
+								{
+									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest niggarchiver and try again.\n";
+									return -1;
+								}
 							}
 						}
 						while(d != "]]]:::");// || i.eof());
@@ -108,42 +120,69 @@ int main(int argc, char** argv)
 						getline(isdbuf, data);
 						if(data == ":::BOF{")
 						{
-							std::ofstream o;
-							o.open("." + path, std::ios::out | std::ios::binary);
-							if(o.good())
+							std::string dir, file = ""; int lastslash = 0;
+							for(int i = 0; i < path.length(); i++)
 							{
-								std::cout << ">> Saving data to file " << path << ".\n";
-								std::string fline = "";
-								while(fline != "}EOF:::")
+								if(path[i] == '/') lastslash = i;
+							}
+							for(int i = 0; i < lastslash; i++)
+							dir += path[i];
+							if(!std::filesystem::exists("." + path))
+							{
+								std::filesystem::create_directories("./" + dir);
+								std::ofstream o;
+								o.open("." + path, std::ios::out | std::ios::binary);
+								if(o.good())
 								{
-									getline(isdbuf, fline);
-									if(fline != "\\}EOF:::")
+									std::cout << ":: Saving data to file " << path << ".\n";
+									std::string fline = "";
+									while(fline != "}EOF:::")
 									{
-										if(fline != "}EOF:::") o << fline << "\n";
+										getline(isdbuf, fline);
+										if(fline != "\\}EOF:::")
+										{
+											if(fline != "}EOF:::") o << fline << "\n";
+										}
+										else
+										{
+											o << "}EOF:::" << "\n";
+										}
 									}
-									else
-									{
-										o << "}EOF:::" << "\n";
-									}
+									o.close();
 								}
-								o.close();
+								else
+								{
+									std::cerr << argv[0] << ": Failed to create '" << "." + path << "' file.\n\r";
+									i.close();
+								}
 							}
 							else
 							{
-								std::cerr << argv[0] << ": Failed to create '" << "." + path << "' file.\n\r";
-								return -1;
-								i.close();
+								std::cerr << argv[0] << ": Unable to create \"" << path << "\". File exists.\n\r";
 							}
 						}
 					}
 				}
 				i.close();
+				if(format == "bad") std::cerr << argv[0] << ": File is not nar archive or file is broken.\n\r";
 			}
 			else
 			{
 				std::cerr << argv[0] << ": Failed to open '" << argv[2] << "' file.\n\r";
 				return -1;
 			}
+		}
+
+		/* CONVERT :: -c :: nar -c input.nar > output.nar */
+
+		else if(!strcmp(argv[1], "-c"))
+		{
+		}
+
+		/* LIST :: -l :: nar -l input.nar */
+
+		else if(!strcmp(argv[1], "-c"))
+		{
 		}
 		else if(!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
 		{
