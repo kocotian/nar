@@ -1,5 +1,5 @@
 # nar
-Nigga Archiver is a tiny tool that will pack your files into a small archive.
+kocotiaN ARchiver is a tiny tool that will pack your files into a small archive.
 
 # Installation
 First, clone the repo
