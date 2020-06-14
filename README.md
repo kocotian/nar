@@ -1,5 +1,5 @@
 # nar
-Next ARchiver is a tiny tool that will pack your files into a small archive.
+nextarchiver is a simple (but for now really bloated) tool that will pack your files into a small archive.
 
 # Installation
 First, clone the repo
