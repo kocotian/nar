@@ -4,7 +4,7 @@
 #include <cstring>
 #include <filesystem>
 
-std::string version = "2.0";
+std::string version = "2.0-pre2";
 
 int main(int argc, char** argv)
 {
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 				{
 					if(data == ":::[[[")
 					{
-						std::cout << ":: Opening header...\n";
+						std::clog << ":: Opening header...\n";
 						inHeader = true;
 						std::string d = "";
 						do
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 							{
 								getline(isdbuf, format);
 								if(format == "nar2")
-								std::cout << ":: Detected correct format (" << format << ")!\n";
+								std::clog << ":: Detected correct format (" << format << ")!\n";
 								else if(format == "nar")
 								{
 									std::cerr << argv[0] << ": Detected nar1 format. You must convert it to newer nar2 format. Write \"" << argv[0] << " -c " << argv[2] << " > newfilename.nar\" and try again.\n";
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 								}
 								else
 								{
-									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest niggarchiver and try again.\n";
+									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest nextarchiver and try again.\n";
 									return -1;
 								}
 							}
@@ -112,13 +112,13 @@ int main(int argc, char** argv)
 						while(d != "]]]:::");// || i.eof());
 						if(d == "]]]:::")
 						{
-							std::cout << ":: Closing header...\n";
+							std::clog << ":: Closing header...\n";
 							inHeader = false;
 						}
 					}
 					else if(data == "F:")
 					{
-						std::cout << ":: Opening file header...\n";
+						std::clog << ":: Opening file header...\n";
 						inFileHeader = true;
 						std::string path = "";
 						getline(isdbuf, path);
@@ -137,12 +137,12 @@ int main(int argc, char** argv)
 							o.open("." + path, std::ios::out | std::ios::binary);
 							if(o.good())
 							{
-								std::cout << ":: Saving data to file " << path << ".\n";
+								std::clog << ":: Saving data to file " << path << ".\n";
 								std::string fline = "";
 								while(fline != std::string(1, char(28)))
 								{
 									getline(isdbuf, fline);
-									if(fline != "\\" + char(28))
+									if(fline != std::string(1, '\\') + std::string(1, char(28)))
 									{
 										if(fline != std::string(1, char(28))) o << fline << "\n";
 									}
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
 								}
 								else
 								{
-									std::cerr << argv[0] << ": Detected unknown format (" << format << "). This format can be later nar version - download latest niggarchiver and try again.\n";
+									std::cerr << argv[0] << ": Detected unknown format (" << format << "). This format can be later nar version - download latest nextarchiver and try again.\n";
 									return -1;
 								}
 							}
@@ -324,7 +324,7 @@ int main(int argc, char** argv)
 								}
 								else
 								{
-									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest niggarchiver and try again.\n";
+									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest nextarchiver and try again.\n";
 									return -1;
 								}
 							}
@@ -361,7 +361,7 @@ int main(int argc, char** argv)
 		}
 		else if(!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
 		{
-			std::cout << "Niggarchiver v" << version << '\n';
+			std::cout << "Next ARchiver v" << version << '\n';
 			std::cout << "Usage:\n    -a  Archive data\n    -u  Unarchive data\n    -l  Displays archive content\n    -c  Converts archive to latest format\n    -h  Show this help\n\nExamples:\n";
 			std::cout << argv[0] << " -a * > foo.nar - Archives all data in current directory to archive foo.nar\n";
 			std::cout << argv[0] << " -a document.pdf > document.nar - Archive document.pdf file to archive document.nar\n";
