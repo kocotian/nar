@@ -1,5 +1,5 @@
 # nar
-Nigga Archiver is a tiny tool that will pack your files into a small archive.
+Next ARchiver is a tiny tool that will pack your files into a small archive.
 
 # Installation
 First, clone the repo
@@ -36,3 +36,16 @@ For example - you have archive photos.nar and you want to unpack the archive - w
 $ nar -u photos.nar
 ```
 and files will be unpacked. Note that you don't need to redirect output
+
+## List archive content
+To list archive content write:
+```bash
+$ nar -l [archive name]
+```
+You'll always get archive type and files in archive
+
+## Converting archives
+nextarchiver 2.0 brings up new nar2 format that isn't compatible with classic nar format. Classic nar format is supported and you can convert it to newer format (conversion from nar2 to nar is not supported)
+```bash
+$ nar -c [archive name in nar1 format]
+```
