@@ -4,7 +4,7 @@
 #include <cstring>
 #include <filesystem>
 
-std::string version = "2.0-pre3";
+std::string version = "2.0";
 
 std::string escapeeof(std::string line, bool escape)
 {
@@ -45,41 +45,38 @@ int main(int argc, char** argv)
 		
 		if(!strcmp(argv[1], "-a"))
 		{
-			std::string buffer = "";
 			std::ifstream i;
 
-			buffer += ":::[[[\nformat:\nnar2\n]]]:::\n";
+			std::cout << ":::[[[\nformat:\nnar2\n]]]:::\n";
+			std::clog << ":: Archive header created\n";
 
 			for(int f = 2; f < argc; f++)
 			{
-				buffer += "F:\n/";
-				buffer += argv[f];
-				buffer += "\n";
+				std::cout << "F:\n/" << argv[f] << "\n";
 
 				i.open(argv[f], std::ios::in | std::ios::binary);
 				if(i.good() == true)
 				{
+					std::clog << ":: Saving " << argv[f] << " file...";
 					std::string buff;
 					while(getline(i, buff))
 					{
-						buffer += escapeeof(buff, 1) + '\n';
+						std::cout << escapeeof(buff, 1) + '\n';
 					}
 					i.close();
+					std::clog << " SUCCESS!\n";
 				}
 				else
 				{
 					std::cerr << argv[0] << ": Failed to open '" << argv[f] << "' file.\n\r";
 					return -1;
 				}
-				buffer += char(28);
-				buffer += "\n";
+				std::cout << char(28) << "\n";
 			}
 
-			buffer += char(4);
-			for(int bpos = 0; bpos < buffer.length(); bpos++)
-			{
-				std::cout << (char)(255 - buffer[bpos]);
-			}
+			std::clog << ":: Finishing...";
+			std::cout << char(4);
+			std::clog << " FINISHED!\n:: Archive created without errors while creating.\n\r";
 		}
 
 		/* UNARCHIVE :: -u :: nar -u input.nar */
@@ -90,32 +87,31 @@ int main(int argc, char** argv)
 			i.open(argv[2], std::ios::in | std::ios::binary);
 			if(i.good())
 			{
-				char cbuf;
-				std::string buffer;
-				while(i.get(cbuf))
-				{
-					int revn = 255 - cbuf;
-					char rbuf = revn;
-					buffer += rbuf;
-				}
-				std::istringstream isdbuf(buffer);
 				std::string data = "";
 				bool inHeader, inFileHeader, inFileContent = false;
 				std::string format = "bad";
+				std::string author = "";
+				std::string comment = "";
+				const char encodedHeader[6] = {char(255 - ':'), char(255 - ':'), char(255 - ':'), char(255 - '['), char(255 - '['), char(255 - '[')};
 
-				while(getline(isdbuf, data))
+				while(getline(i, data))
 				{
-					if(data == ":::[[[")
+					if(data[0] == encodedHeader[0] && data[1] == encodedHeader[1] && data[2] == encodedHeader[2] && data[3] == encodedHeader[3] && data[4] == encodedHeader[4] && data[5] == encodedHeader[5])
+					{
+						std::cerr << argv[0] << ": Detected encoded header. Try to decode archive (-e parameter)\n\r";
+						return -1;
+					}
+					else if(data == ":::[[[")
 					{
 						std::clog << ":: Opening header...\n";
 						inHeader = true;
 						std::string d = "";
 						do
 						{
-							getline(isdbuf, d);
+							getline(i, d);
 							if(d == "format:")
 							{
-								getline(isdbuf, format);
+								getline(i, format);
 								if(format == "nar2")
 								std::clog << ":: Detected correct format (" << format << ")!\n";
 								else if(format == "nar")
@@ -128,6 +124,16 @@ int main(int argc, char** argv)
 									std::cerr << argv[0] << ": Detected wrong format (" << format << "). This can be later nar version - download latest nextarchiver and try again.\n";
 									return -1;
 								}
+							}
+							else if(d == "author:")
+							{
+								getline(i, author);
+								std::clog << ":: Archived by " << author << ".\n";
+							}
+							else if(d == "comment:")
+							{
+								getline(i, comment);
+								std::clog << ":: Comment: " << comment << ".\n";
 							}
 						}
 						while(d != "]]]:::");// || i.eof());
@@ -142,7 +148,7 @@ int main(int argc, char** argv)
 						std::clog << ":: Opening file header...\n";
 						inFileHeader = true;
 						std::string path = "";
-						getline(isdbuf, path);
+						getline(i, path);
 
 						std::string dir, file = ""; int lastslash = 0;
 						for(int i = 0; i < path.length(); i++)
@@ -162,7 +168,7 @@ int main(int argc, char** argv)
 								std::string fline = "";
 								while(fline != std::string(1, char(28)))
 								{
-									getline(isdbuf, fline);
+									getline(i, fline);
 									if(fline != std::string(1, '\\') + std::string(1, char(28)))
 									{
 										if(fline != std::string(1, char(28))) o << fline << "\n";
@@ -196,9 +202,9 @@ int main(int argc, char** argv)
 			}
 		}
 
-		/* DECRYPT :: -d :: nar -d input.nar > output.nar */
+		/* DECRYPT :: -e :: nar -d input.nar > output.nar */
 
-		else if(!strcmp(argv[1], "-d"))
+		else if(!strcmp(argv[1], "-e"))
 		{
 			std::ifstream i;
 			i.open(argv[2], std::ios::in | std::ios::binary);
@@ -254,7 +260,7 @@ int main(int argc, char** argv)
 								getline(isdbuf, format);
 								if(format == "nar")
 								{
-									buffer += ":::[[[\nformat:\nnar2\n]]]:::\n";
+									std::cout << ":::[[[\nformat:\nnar2\n]]]:::\n";
 								}
 								else if(format == "nar2")
 								{
@@ -276,12 +282,12 @@ int main(int argc, char** argv)
 					}
 					else if(data == ":::[FILE" && format == "nar")
 					{
-						buffer += "F:\n";
+						std::cout << "F:\n";
 						inFileHeader = true;
 						std::string path = "";
 						getline(isdbuf, path);
 						getline(isdbuf, data);
-						buffer += path + "\n";
+						std::cout << path << "\n";
 						if(data == ":::BOF{")
 						{
 							std::string fline = "";
@@ -293,28 +299,23 @@ int main(int argc, char** argv)
 									if(fline != "}EOF:::")
 									{
 										if(fline != std::string(1, char(28)))
-										buffer += fline + "\n";
+										std::cout << fline << "\n";
 										else
-										buffer += "\\" + fline + "\n";
+										std::cout << "\\" << fline << "\n";
 									}
 								}
 								else
 								{
-									buffer += "}EOF:::\n";
+									std::cout << "}EOF:::\n";
 								}
 							}
-							buffer += char(28);
-							buffer += "\n";
+							std::cout << char(28) << "\n";
 						}
 					}
 					else if(data == ":::[[[EOA]]]:::" && format == "nar")
-					buffer += char(4);
+					std::cout << char(4);
 				}
 				i.close();
-				for(int bpos = 0; bpos < buffer.length(); bpos++)
-				{
-					std::cout << (char)(255 - buffer[bpos]);
-				}
 				if(format == "bad") std::cerr << argv[0] << ": File is not nar archive or file is broken.\n\r";
 			}
 			else
@@ -332,20 +333,13 @@ int main(int argc, char** argv)
 			i.open(argv[2], std::ios::in | std::ios::binary);
 			if(i.good())
 			{
-				char cbuf;
-				std::string buffer;
-				while(i.get(cbuf))
-				{
-					int revn = 255 - cbuf;
-					char rbuf = revn;
-					buffer += rbuf;
-				}
-				std::istringstream isdbuf(buffer);
 				std::string data = "";
 				bool inHeader, inFileHeader, inFileContent = false;
 				std::string format = "bad";
+				std::string author = "";
+				std::string comment = "";
 
-				while(getline(isdbuf, data))
+				while(getline(i, data))
 				{
 					if(data == ":::[[[")
 					{
@@ -353,10 +347,10 @@ int main(int argc, char** argv)
 						std::string d = "";
 						do
 						{
-							getline(isdbuf, d);
+							getline(i, d);
 							if(d == "format:")
 							{
-								getline(isdbuf, format);
+								getline(i, format);
 								if(format == "nar2")
 								std::cout << ":: File in format " << format << ".\n";
 								else if(format == "nar")
@@ -370,6 +364,16 @@ int main(int argc, char** argv)
 									return -1;
 								}
 							}
+							else if(d == "author:")
+							{
+								getline(i, author);
+								std::clog << ":: Archived by " << author << ".\n";
+							}
+							else if(d == "comment:")
+							{
+								getline(i, comment);
+								std::clog << ":: Comment: " << comment << ".\n";
+							}
 						}
 						while(d != "]]]:::");// || i.eof());
 						if(d == "]]]:::")
@@ -381,13 +385,13 @@ int main(int argc, char** argv)
 					{
 						inFileHeader = true;
 						std::string path = "";
-						getline(isdbuf, path);
+						getline(i, path);
 
 						std::cout << ":: File: " << path << ".\n";
 						std::string fline = "";
 						while(fline != std::string(1, char(28)))
 						{
-							getline(isdbuf, fline);
+							getline(i, fline);
 						}
 					}
 				}
