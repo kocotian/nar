@@ -4,7 +4,38 @@
 #include <cstring>
 #include <filesystem>
 
-std::string version = "2.0-pre2";
+std::string version = "2.0-pre3";
+
+std::string escapeeof(std::string line, bool escape)
+{
+	if(line[(line.length() - 1)] == char(28))
+	{
+		if(line.length() > 1)
+		{
+			for(int i = 0; i < line.length() - 1; i++)
+			{
+				if(line[i] != '\\') return line;
+			}
+			if(escape)
+			{
+				return std::string("\\") + line;
+			}
+			else
+			{
+				std::string uline = "";
+				for(int i = 1; i < line.length() - 1; i++)
+				{
+					uline += line[i];
+				}
+				return uline + char(28);
+			}
+		}
+		else if(escape) return std::string("\\") + line;
+	}
+	else return line;
+
+	return line;
+}
 
 int main(int argc, char** argv)
 {
@@ -31,17 +62,7 @@ int main(int argc, char** argv)
 					std::string buff;
 					while(getline(i, buff))
 					{
-						if(buff != std::string(1, char(28)))
-						{
-							buffer += buff;
-							buffer += "\n";
-						}
-						else
-						{
-							buffer += "\\";
-							buffer += char(28);
-							buffer += "\n";
-						}
+						buffer += escapeeof(buff, 1) + '\n';
 					}
 					i.close();
 				}
@@ -167,6 +188,27 @@ int main(int argc, char** argv)
 				}
 				i.close();
 				if(format == "bad") std::cerr << argv[0] << ": File is not nar archive or file is broken.\n\r";
+			}
+			else
+			{
+				std::cerr << argv[0] << ": Failed to open '" << argv[2] << "' file.\n\r";
+				return -1;
+			}
+		}
+
+		/* DECRYPT :: -d :: nar -d input.nar > output.nar */
+
+		else if(!strcmp(argv[1], "-d"))
+		{
+			std::ifstream i;
+			i.open(argv[2], std::ios::in | std::ios::binary);
+			if(i.good())
+			{
+				char buff = 0;
+				while(i.get(buff))
+				{
+					std::cout << char(255 - buff);
+				}
 			}
 			else
 			{
@@ -362,12 +404,13 @@ int main(int argc, char** argv)
 		else if(!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))
 		{
 			std::cout << "Next ARchiver v" << version << '\n';
-			std::cout << "Usage:\n    -a  Archive data\n    -u  Unarchive data\n    -l  Displays archive content\n    -c  Converts archive to latest format\n    -h  Show this help\n\nExamples:\n";
+			std::cout << "Usage:\n    -a  Archive data\n    -u  Unarchive data\n    -l  Displays archive content\n    -c  Converts archive to latest format\n    -e  Encrypt/Decrypt file encrypted with N-255 format\n    -h  Show this help\n\nExamples:\n";
 			std::cout << argv[0] << " -a * > foo.nar - Archives all data in current directory to archive foo.nar\n";
 			std::cout << argv[0] << " -a document.pdf > document.nar - Archive document.pdf file to archive document.nar\n";
 			std::cout << argv[0] << " -u photos.nar - Unarchive all content of photos.nar archive\n";
 			std::cout << argv[0] << " -l example.nar - Display content of example.nar archive\n";
 			std::cout << argv[0] << " -c bar.nar > foo.nar - Converts bar.nar archive with older nar format to latest available\n\r";
+			std::cout << argv[0] << " -e infoo.nar > barout.nar - Encrypt/decrypt archive. Usable for sending via not-trusted streams and for older archive types.\n\r";
 		}
 		else
 		{
